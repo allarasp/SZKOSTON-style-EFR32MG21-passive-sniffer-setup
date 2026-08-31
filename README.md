@@ -20,10 +20,10 @@ The intended use is passive radio capture with `ember-zli sniff`, producing PCAP
 
 ## Repository layout
 
-The tested custom sniffer firmware is named:
+The tested custom sniffer firmware is included at:
 
 ```text
-firmware/SnifferNCP.gbl
+firmware/source/SnifferNCP.gbl
 ```
 
 Recommended layout:
@@ -33,11 +33,74 @@ README.md
 images/
   szkoston-efr32mg21-dongle.jpg
 firmware/
-  SnifferNCP.gbl
   README.md
+  source/
+    SnifferNCP.gbl
 ```
 
-## 1. Install Tera Term
+## 1. Install Node.js
+
+`ember-zli` is a Node.js command-line application, so install Node.js first. On Windows, the easiest method is to install the current Node.js LTS release from the official Node.js website:
+
+https://nodejs.org/en/download
+
+The Node.js installer also installs `npm`, which is used to install `ember-zli`.
+
+After installation, close and reopen PowerShell and verify both commands:
+
+```powershell
+node --version
+npm --version
+```
+
+Both commands should print a version number.
+
+If Windows Package Manager (`winget`) is available, Node.js LTS can alternatively be installed from PowerShell with:
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+
+Close and reopen PowerShell after installation, then verify:
+
+```powershell
+node --version
+npm --version
+```
+
+## 2. Install ember-zli
+
+Install `ember-zli` globally with npm:
+
+```powershell
+npm install -g ember-zli
+```
+
+Verify the installation:
+
+```powershell
+ember-zli --version
+```
+
+You can also display the available commands with:
+
+```powershell
+ember-zli --help
+```
+
+The command used for passive packet capture is:
+
+```powershell
+ember-zli sniff
+```
+
+If PowerShell reports that `ember-zli` is not recognized after installation, close and reopen the terminal first so that the updated npm PATH is loaded.
+
+Official ember-zli project:
+
+https://github.com/Nerivec/ember-zli
+
+## 3. Install Tera Term
 
 Download and install **Tera Term** for Windows.
 
@@ -45,7 +108,7 @@ Tera Term is used to open the CH340 COM port, access the Gecko bootloader, and t
 
 After installation, connect the USB dongle to the PC. Open **Device Manager -> Ports (COM & LPT)**. The tested adapter appeared as `USB-SERIAL CH340 (COM4)`. Your COM number may be different.
 
-## 2. Put the dongle into Gecko bootloader mode
+## 4. Put the dongle into Gecko bootloader mode
 
 The tested SZKOSTON-style board has two buttons/signals: `BOOT` and `nRST` / reset.
 
@@ -62,18 +125,18 @@ Hold BOOT
   -> release BOOT
 ```
 
-## 3. Open the serial port in Tera Term
+## 5. Open the serial port in Tera Term
 
 Start Tera Term, select **Serial**, choose the CH340 COM port, and use `115200`, 8 data bits, no parity, 1 stop bit. For the bootloader transfer hardware RTS/CTS is not required.
 
 If the bootloader is active, Tera Term should show the Gecko bootloader menu or prompt. If normal NCP/Zigbee traffic appears instead, repeat the BOOT + nRST sequence.
 
-## 4. Flash the custom sniffer firmware with XMODEM
+## 6. Flash the custom sniffer firmware with XMODEM
 
 Use the firmware included in this repository:
 
 ```text
-firmware/SnifferNCP.gbl
+firmware/source/SnifferNCP.gbl
 ```
 
 Once the Gecko bootloader is visible, choose the bootloader option that starts an XMODEM firmware upload. Then in Tera Term use:
@@ -82,9 +145,9 @@ Once the Gecko bootloader is visible, choose the bootloader option that starts a
 File -> Transfer -> XMODEM -> Send
 ```
 
-Select `firmware/SnifferNCP.gbl`, start the transfer, and wait until it is completely finished. Do not unplug the dongle during upload. If it does not reboot automatically, press `nRST` once.
+Select `firmware/source/SnifferNCP.gbl`, start the transfer, and wait until it is completely finished. Do not unplug the dongle during upload. If it does not reboot automatically, press `nRST` once.
 
-## 5. Expected firmware configuration
+## 7. Expected firmware configuration
 
 The custom firmware used for this setup was built in **Simplicity Studio 6** from the Silicon Labs `Zigbee - NCP UART HW` example for `EFR32MG21A020F768IM32`, with `Zigbee -> Utility -> Manufacturing Library` enabled.
 
@@ -101,7 +164,9 @@ RTS/CTS: disabled
 
 The tested NCP reported `9.1.1 [GA]`, EZSP protocol version `19`.
 
-## 6. Start a passive capture
+## 8. Start a passive capture
+
+Make sure Tera Term and any other application using the dongle's COM port are closed.
 
 Open PowerShell and run:
 
@@ -109,15 +174,33 @@ Open PowerShell and run:
 ember-zli sniff
 ```
 
-Use Serial, 115200 baud, your CH340 COM port, Software flow control, RTS/CTS false, and PCAP output. For the tested PowerTag capture we used channel 11 and radio TX power 5.
+For the tested dongle select:
 
-A successful start should end with:
+```text
+Connection: Serial
+Baud rate: 115200
+Port: your CH340 COM port
+Flow control: Software
+RTS/CTS: false
+Output: PCAP file
+```
+
+Select the Zigbee channel you want to monitor. For the Schneider PowerTag commissioning capture we used:
+
+```text
+Channel: 11
+TX power: 5
+```
+
+A successful startup should report the NCP/EZSP version, start MFGLIB, and end with:
 
 ```text
 Sniffing started.
 ```
 
-## 7. Restoring the original coordinator firmware
+Leave the command running while performing the Zigbee/Green Power activity you want to capture. Stop the capture with `Ctrl+C` when finished.
+
+## 9. Restoring the original coordinator firmware
 
 Keep a known-good recovery image. For the tested stick, the recovery image used was `ncp-uart-sw_7.4.3.0_115200.gbl`.
 
@@ -126,6 +209,8 @@ Restore it with the same BOOT/nRST sequence and Tera Term XMODEM procedure.
 ## Troubleshooting
 
 If Tera Term shows nothing, verify the COM port and 115200 baud and make sure no other program owns the serial port. If normal firmware starts, repeat the BOOT/nRST sequence. If XMODEM does not start, first make sure the Gecko bootloader has entered XMODEM receive mode. Close Tera Term before starting `ember-zli`. If no packets are captured, verify the radio channel. If MFGLIB does not start, verify that Manufacturing Library was included in the firmware build.
+
+If `node`, `npm`, or `ember-zli` is reported as an unknown command, close and reopen PowerShell after installation and check the commands again.
 
 ## Related project
 
