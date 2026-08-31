@@ -2,7 +2,7 @@
 
 ![SZKOSTON-style EFR32MG21 USB dongle](images/szkoston-efr32mg21-dongle.jpg)
 
-This repository documents how to convert a SZKOSTON-style EFR32MG21 Zigbee USB dongle into a passive IEEE 802.15.4 / Zigbee sniffer using a custom Silicon Labs NCP firmware with MFGLIB support.
+This repository documents how to convert a SZKOSTON-style EFR32MG21 Zigbee USB dongle into a passive IEEE 802.15.4 / Zigbee sniffer using a custom Silicon Labs NCP firmware with MFGLIB support, and how to restore the dongle back to coordinator firmware afterwards.
 
 The guide is based on a tested dongle using:
 
@@ -16,17 +16,11 @@ The guide is based on a tested dongle using:
 
 The intended use is passive radio capture with `ember-zli sniff`, producing PCAP files for later analysis.
 
-> **Important:** Flashing custom firmware replaces the original coordinator firmware on the dongle. Keep a recovery image before you start.
+> **Important:** Flashing custom firmware replaces the coordinator firmware on the dongle. A tested recovery firmware is included in this repository so the dongle can be restored afterwards.
 
 ## Repository layout
 
-The tested custom sniffer firmware is included at:
-
-```text
-firmware/source/SnifferNCP.gbl
-```
-
-Recommended layout:
+Both required firmware images are included:
 
 ```text
 README.md
@@ -36,17 +30,29 @@ firmware/
   README.md
   source/
     SnifferNCP.gbl
+    ncp-uart-sw_7.4.3.0_115200.gbl
 ```
+
+Firmware purpose:
+
+| File | Purpose |
+| --- | --- |
+| `firmware/source/SnifferNCP.gbl` | Custom MFGLIB NCP firmware used for passive packet sniffing |
+| `firmware/source/ncp-uart-sw_7.4.3.0_115200.gbl` | Tested EmberZNet 7.4.3 coordinator/recovery firmware, 115200 baud, software flow control |
 
 ## 1. Install Node.js
 
-`ember-zli` is a Node.js command-line application, so install Node.js first. On Windows, the easiest method is to install the current Node.js LTS release from the official Node.js website:
+`ember-zli` is a Node.js command-line application, so install Node.js first.
 
-https://nodejs.org/en/download
+On Windows with `winget`:
 
-The Node.js installer also installs `npm`, which is used to install `ember-zli`.
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
 
-After installation, close and reopen PowerShell and verify both commands:
+Alternatively, download the current Node.js LTS installer from the official Node.js website.
+
+After installation, close and reopen PowerShell and verify:
 
 ```powershell
 node --version
@@ -54,19 +60,6 @@ npm --version
 ```
 
 Both commands should print a version number.
-
-If Windows Package Manager (`winget`) is available, Node.js LTS can alternatively be installed from PowerShell with:
-
-```powershell
-winget install OpenJS.NodeJS.LTS
-```
-
-Close and reopen PowerShell after installation, then verify:
-
-```powershell
-node --version
-npm --version
-```
 
 ## 2. Install ember-zli
 
@@ -82,41 +75,51 @@ Verify the installation:
 ember-zli --version
 ```
 
-You can also display the available commands with:
+Show available commands if needed:
 
 ```powershell
 ember-zli --help
 ```
 
-The command used for passive packet capture is:
+The passive capture command used by this guide is:
 
 ```powershell
 ember-zli sniff
 ```
 
-If PowerShell reports that `ember-zli` is not recognized after installation, close and reopen the terminal first so that the updated npm PATH is loaded.
+If PowerShell reports that `ember-zli` is not recognized after installation, close and reopen PowerShell so the updated npm PATH is loaded.
 
-Official ember-zli project:
-
-https://github.com/Nerivec/ember-zli
+Official ember-zli project: https://github.com/Nerivec/ember-zli
 
 ## 3. Install Tera Term
 
 Download and install **Tera Term** for Windows.
 
-Tera Term is used to open the CH340 COM port, access the Gecko bootloader, and transfer the `.gbl` firmware file using XMODEM.
+Tera Term is used to access the Gecko bootloader over the CH340 serial port and transfer `.gbl` firmware using XMODEM.
 
-After installation, connect the USB dongle to the PC. Open **Device Manager -> Ports (COM & LPT)**. The tested adapter appeared as `USB-SERIAL CH340 (COM4)`. Your COM number may be different.
+Connect the dongle and open:
 
-## 4. Put the dongle into Gecko bootloader mode
+```text
+Device Manager -> Ports (COM & LPT)
+```
 
-The tested SZKOSTON-style board has two buttons/signals: `BOOT` and `nRST` / reset.
+The tested adapter appeared as:
 
-Use this exact sequence:
+```text
+USB-SERIAL CH340 (COM4)
+```
 
-1. **Press and hold `BOOT`.**
-2. While still holding `BOOT`, **press and release `nRST`.**
-3. **Release `BOOT`.**
+Your COM number may be different.
+
+## 4. Enter Gecko bootloader mode
+
+The tested board has `BOOT` and `nRST` / reset controls.
+
+Use this sequence:
+
+1. Press and hold `BOOT`.
+2. While holding `BOOT`, press and release `nRST`.
+3. Release `BOOT`.
 
 ```text
 Hold BOOT
@@ -125,29 +128,52 @@ Hold BOOT
   -> release BOOT
 ```
 
-## 5. Open the serial port in Tera Term
+## 5. Open the bootloader in Tera Term
 
-Start Tera Term, select **Serial**, choose the CH340 COM port, and use `115200`, 8 data bits, no parity, 1 stop bit. For the bootloader transfer hardware RTS/CTS is not required.
+Start Tera Term and select **Serial**.
 
-If the bootloader is active, Tera Term should show the Gecko bootloader menu or prompt. If normal NCP/Zigbee traffic appears instead, repeat the BOOT + nRST sequence.
+Select the CH340 COM port and configure:
 
-## 6. Flash the custom sniffer firmware with XMODEM
+```text
+Baud rate: 115200
+Data: 8 bit
+Parity: none
+Stop: 1 bit
+```
 
-Use the firmware included in this repository:
+Hardware RTS/CTS is not required for the bootloader transfer.
+
+If the Gecko bootloader is active, its menu/prompt should appear in Tera Term. If the normal application starts instead, repeat the BOOT + nRST sequence.
+
+## 6. Flash the passive sniffer firmware
+
+The sniffer firmware is:
 
 ```text
 firmware/source/SnifferNCP.gbl
 ```
 
-Once the Gecko bootloader is visible, choose the bootloader option that starts an XMODEM firmware upload. Then in Tera Term use:
+With the Gecko bootloader open in Tera Term:
+
+1. Select the bootloader menu option that starts a firmware upload / XMODEM receive operation.
+2. In Tera Term open:
 
 ```text
 File -> Transfer -> XMODEM -> Send
 ```
 
-Select `firmware/source/SnifferNCP.gbl`, start the transfer, and wait until it is completely finished. Do not unplug the dongle during upload. If it does not reboot automatically, press `nRST` once.
+3. Select:
 
-## 7. Expected firmware configuration
+```text
+firmware/source/SnifferNCP.gbl
+```
+
+4. Start the transfer.
+5. Wait until the transfer is completely finished.
+6. Do not unplug or reset the dongle during the upload.
+7. If the firmware does not start automatically after a successful transfer, press `nRST` once.
+
+## 7. Sniffer firmware configuration
 
 The custom firmware used for this setup was built in **Simplicity Studio 6** from the Silicon Labs `Zigbee - NCP UART HW` example for `EFR32MG21A020F768IM32`, with `Zigbee -> Utility -> Manufacturing Library` enabled.
 
@@ -157,16 +183,21 @@ Working UART configuration:
 USART0
 TX: PB01
 RX: PB00
-baud: 115200
-software flow control
+Baud: 115200
+Flow control: software
 RTS/CTS: disabled
 ```
 
-The tested NCP reported `9.1.1 [GA]`, EZSP protocol version `19`.
+The tested sniffer NCP reported:
+
+```text
+NCP: 9.1.1 [GA]
+EZSP protocol: 19
+```
 
 ## 8. Start a passive capture
 
-Make sure Tera Term and any other application using the dongle's COM port are closed.
+Close Tera Term and any other application using the dongle COM port.
 
 Open PowerShell and run:
 
@@ -182,10 +213,12 @@ Baud rate: 115200
 Port: your CH340 COM port
 Flow control: Software
 RTS/CTS: false
-Output: PCAP file
+Output: PCAP
 ```
 
-Select the Zigbee channel you want to monitor. For the Schneider PowerTag commissioning capture we used:
+Then select the IEEE 802.15.4 / Zigbee channel you want to monitor.
+
+For the tested Schneider PowerTag capture:
 
 ```text
 Channel: 11
@@ -198,19 +231,143 @@ A successful startup should report the NCP/EZSP version, start MFGLIB, and end w
 Sniffing started.
 ```
 
-Leave the command running while performing the Zigbee/Green Power activity you want to capture. Stop the capture with `Ctrl+C` when finished.
+Leave the command running while performing the Zigbee activity you want to capture. Stop it with:
 
-## 9. Restoring the original coordinator firmware
+```text
+Ctrl+C
+```
 
-Keep a known-good recovery image. For the tested stick, the recovery image used was `ncp-uart-sw_7.4.3.0_115200.gbl`.
+The resulting PCAP can then be opened in Wireshark.
 
-Restore it with the same BOOT/nRST sequence and Tera Term XMODEM procedure.
+## 9. Restore coordinator firmware
+
+A tested recovery firmware is included in the repository:
+
+```text
+firmware/source/ncp-uart-sw_7.4.3.0_115200.gbl
+```
+
+This is an EmberZNet `7.4.3.0` NCP image configured for `115200` baud and software UART flow control.
+
+### Step 1 - Stop the sniffer
+
+If `ember-zli sniff` is running, stop it with:
+
+```text
+Ctrl+C
+```
+
+Close any program using the dongle COM port.
+
+### Step 2 - Enter Gecko bootloader
+
+Use exactly the same bootloader sequence:
+
+```text
+Hold BOOT
+  -> press nRST
+  -> release nRST
+  -> release BOOT
+```
+
+### Step 3 - Connect with Tera Term
+
+Open Tera Term, select the CH340 COM port, and use:
+
+```text
+115200 baud
+8 data bits
+no parity
+1 stop bit
+```
+
+Confirm that the Gecko bootloader menu/prompt is visible.
+
+### Step 4 - Start XMODEM upload
+
+Select the Gecko bootloader menu option that starts firmware upload / XMODEM receive mode.
+
+Then in Tera Term select:
+
+```text
+File -> Transfer -> XMODEM -> Send
+```
+
+Choose:
+
+```text
+firmware/source/ncp-uart-sw_7.4.3.0_115200.gbl
+```
+
+Wait for the transfer to finish completely.
+
+### Step 5 - Restart the dongle
+
+After a successful upload, allow the dongle to reboot. If necessary, press `nRST` once.
+
+The dongle is now back on the tested EmberZNet 7.4.3 coordinator/NCP firmware rather than the custom MFGLIB sniffer firmware.
+
+### Switching back to sniffer mode later
+
+There is no need to rebuild the firmware. Enter the Gecko bootloader again and flash:
+
+```text
+firmware/source/SnifferNCP.gbl
+```
+
+Therefore the same dongle can be switched between:
+
+```text
+SnifferNCP.gbl
+        <->
+ncp-uart-sw_7.4.3.0_115200.gbl
+```
+
+using the same BOOT/nRST + Tera Term + XMODEM procedure.
 
 ## Troubleshooting
 
-If Tera Term shows nothing, verify the COM port and 115200 baud and make sure no other program owns the serial port. If normal firmware starts, repeat the BOOT/nRST sequence. If XMODEM does not start, first make sure the Gecko bootloader has entered XMODEM receive mode. Close Tera Term before starting `ember-zli`. If no packets are captured, verify the radio channel. If MFGLIB does not start, verify that Manufacturing Library was included in the firmware build.
+### Tera Term shows nothing
 
-If `node`, `npm`, or `ember-zli` is reported as an unknown command, close and reopen PowerShell after installation and check the commands again.
+Check the COM port and `115200` baud. Make sure another program is not using the serial port.
+
+### Normal firmware starts instead of the bootloader
+
+Repeat the sequence carefully:
+
+```text
+Hold BOOT -> press/release nRST -> release BOOT
+```
+
+### XMODEM transfer does not start
+
+Make sure the Gecko bootloader has first been put into its firmware-upload/XMODEM receive mode before selecting XMODEM Send in Tera Term.
+
+### ember-zli cannot open the COM port
+
+Close Tera Term and any other serial terminal before running:
+
+```powershell
+ember-zli sniff
+```
+
+### node, npm or ember-zli is not recognized
+
+Close and reopen PowerShell after installation and check:
+
+```powershell
+node --version
+npm --version
+ember-zli --version
+```
+
+### Sniffer starts but receives no packets
+
+Verify that the selected channel matches the Zigbee network or device being monitored.
+
+### MFGLIB does not start
+
+Make sure the custom firmware is `SnifferNCP.gbl` from this repository. MFGLIB support is required for this capture method.
 
 ## Related project
 
@@ -218,4 +375,4 @@ This sniffer setup was created while investigating Schneider PowerTag Zigbee Gre
 
 ## Disclaimer
 
-This guide documents development and interoperability work performed on owned hardware. Flashing third-party firmware can make a dongle temporarily unusable if the wrong image or hardware configuration is used. Always keep a recovery image and verify the target MCU before flashing.
+This guide documents development and interoperability work performed on owned hardware. Firmware images are hardware-specific. Verify that the target dongle uses the expected `EFR32MG21A020F768IM32` hardware and UART configuration before flashing. Interrupting a firmware transfer or flashing an incompatible image can leave the dongle unusable until it is recovered through an appropriate bootloader or debug interface.
