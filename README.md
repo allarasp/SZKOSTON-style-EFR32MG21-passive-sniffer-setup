@@ -20,13 +20,11 @@ The intended use is passive radio capture with `ember-zli sniff`, producing PCAP
 
 ## Repository layout
 
-The custom firmware file should be placed in:
+The tested custom sniffer firmware is named:
 
 ```text
-firmware/PowerTagSnifferNCP.gbl
+firmware/SnifferNCP.gbl
 ```
-
-This repository intentionally does not include the firmware binary yet. Add the tested `.gbl` file to the `firmware/` directory when it is ready.
 
 Recommended layout:
 
@@ -35,7 +33,7 @@ README.md
 images/
   szkoston-efr32mg21-dongle.jpg
 firmware/
-  PowerTagSnifferNCP.gbl
+  SnifferNCP.gbl
   README.md
 ```
 
@@ -72,10 +70,10 @@ If the bootloader is active, Tera Term should show the Gecko bootloader menu or 
 
 ## 4. Flash the custom sniffer firmware with XMODEM
 
-The firmware should be stored at:
+Use the firmware included in this repository:
 
 ```text
-firmware/PowerTagSnifferNCP.gbl
+firmware/SnifferNCP.gbl
 ```
 
 Once the Gecko bootloader is visible, choose the bootloader option that starts an XMODEM firmware upload. Then in Tera Term use:
@@ -84,7 +82,7 @@ Once the Gecko bootloader is visible, choose the bootloader option that starts a
 File -> Transfer -> XMODEM -> Send
 ```
 
-Select `firmware/PowerTagSnifferNCP.gbl`, start the transfer, and wait until it is completely finished. Do not unplug the dongle during upload. If it does not reboot automatically, press `nRST` once.
+Select `firmware/SnifferNCP.gbl`, start the transfer, and wait until it is completely finished. Do not unplug the dongle during upload. If it does not reboot automatically, press `nRST` once.
 
 ## 5. Expected firmware configuration
 
