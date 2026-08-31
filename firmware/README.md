@@ -1,15 +1,21 @@
 # Firmware
 
-Place the tested custom sniffer firmware in this directory as:
+The tested custom sniffer firmware for this repository is:
 
 ```text
-PowerTagSnifferNCP.gbl
+SnifferNCP.gbl
 ```
 
-Expected final path:
+Expected path:
 
 ```text
-firmware/PowerTagSnifferNCP.gbl
+firmware/SnifferNCP.gbl
+```
+
+Firmware SHA-256:
+
+```text
+5c1357bce9c69b8ca66b63d7669b86c4365457d1a1dfd8db36a668abaf7f06e0
 ```
 
 The firmware is a Silicon Labs Zigbee NCP UART build for the tested SZKOSTON-style EFR32MG21 dongle with MFGLIB / Manufacturing Library enabled.
@@ -25,7 +31,5 @@ Baud: 115200
 Flow control: software / XON-XOFF
 RTS/CTS: disabled
 ```
-
-The firmware binary is not included yet. Add the verified `.gbl` file here before following the flashing instructions in the main README.
 
 Keep a copy of the original/recovery NCP firmware separately before flashing.
