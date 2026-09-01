@@ -369,9 +369,24 @@ Verify that the selected channel matches the Zigbee network or device being moni
 
 Make sure the custom firmware is `SnifferNCP.gbl` from this repository. MFGLIB support is required for this capture method.
 
-## Related project
+## What this setup can be used for
 
-This sniffer setup was created while investigating Schneider PowerTag Zigbee Green Power commissioning. See the `Schneider-PowerTag-Zigbee` repository for commissioning analysis and example capture data.
+With the dongle running the sniffer firmware, it can passively observe IEEE 802.15.4 / Zigbee traffic on a selected channel without joining the network or acting as the coordinator.
+
+Typical uses include:
+
+- capturing raw IEEE 802.15.4 and Zigbee frames to PCAP files;
+- opening captures in Wireshark for packet-by-packet protocol analysis;
+- observing device pairing, joining and commissioning exchanges;
+- comparing traffic produced by different coordinators, gateways or devices;
+- debugging cases where a Zigbee device is transmitting but an application or coordinator does not process the frames as expected;
+- studying Zigbee Green Power and other IEEE 802.15.4-based traffic visible on the selected channel;
+- investigating frame structure, addressing, counters, timing and retransmissions;
+- performing interoperability and reverse-engineering research on hardware you are authorized to test.
+
+The sniffer records what is transmitted over the air. It does not automatically decrypt protected Zigbee payloads; encrypted traffic can only be interpreted when the required security information is available separately.
+
+Because the repository also includes the tested coordinator/recovery firmware, the same dongle can be restored after capturing and used again as an EFR32MG21 Zigbee coordinator.
 
 ## Disclaimer
 
